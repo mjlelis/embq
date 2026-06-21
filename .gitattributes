@@ -1,0 +1,9 @@
+# Normalize line endings: store LF in the repository and check out LF on all
+# platforms. Keeps diffs clean and silences "LF will be replaced by CRLF"
+# warnings on Windows.
+* text=auto eol=lf
+
+# Explicitly treat known binary types as binary (never normalize).
+*.npy binary
+*.parquet binary
+*.png binary
