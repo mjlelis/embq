@@ -1,0 +1,7 @@
+# Optional dependencies for the leaderboard demo only — NOT required by the
+# embq package itself. Install with:
+#     pip install -r examples/leaderboard/requirements.txt
+#
+# (CPU torch is sufficient; install a CUDA build separately if you have a GPU.)
+sentence-transformers>=3,<6
+datasets>=2,<4

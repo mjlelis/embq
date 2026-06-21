@@ -108,19 +108,29 @@ embq run --embeddings data.parquet --queries queries.npy --k 10 --oversample 20
 
 ## Demo results
 
-Reproducible via [`examples/leaderboard/run.py`](examples/leaderboard/run.py) — 2,000 vectors, 256 dims, 50 clusters, seed 0:
+**Real sentence embeddings, not synthetic data**, at a scale where the rescore shortlist is a small fraction of the database. Reproducible via [`examples/leaderboard/run.py`](examples/leaderboard/run.py):
+
+- **Model:** `BAAI/bge-small-en-v1.5` — 384-dim, L2-normalized
+- **Corpus:** `fancyzhx/ag_news` — 50,000 documents indexed (train split)
+- **Queries:** 1,000 held-out documents (test split, disjoint from the index)
+- **k:** 10 · **seed:** 0
+
+> Queries are held-out embeddings, not human relevance judgements — so this measures how faithfully each *quantization* reproduces the exact fp32 neighbours, not end-to-end retrieval relevance.
 
 ```bash
+pip install -r examples/leaderboard/requirements.txt   # sentence-transformers, datasets
 python examples/leaderboard/run.py
 ```
 
-| Method | Recall@10 | Bytes/vec | Compression |
-| :--- | ---: | ---: | ---: |
-| `int8` | 0.8120 | 256 B | 4.0× |
-| `binary` | 0.4100 | 32 B | 32.0× |
-| `binary+rescore` | **1.0000** | 32 B | **32.0×** |
+| Method | Recall@10 | Bytes/vec (RAM) | Compression | Oversample | Notes |
+| :--- | ---: | ---: | ---: | :---: | :--- |
+| `int8` | 0.9726 | 384 B | 4.0× | — | near-free, reliable |
+| `binary` | 0.6126 | 48 B | 32.0× | — | lossy on its own |
+| `binary+rescore` | 0.8681 | 48 B | 32.0× | 4 | requires fp32 retained for re-rank → RAM-only win |
+| `binary+rescore` | 0.9689 | 48 B | 32.0× | 20 | requires fp32 retained for re-rank → RAM-only win |
+| `binary+rescore` | 0.9946 | 48 B | 32.0× | 100 | requires fp32 retained for re-rank → RAM-only win |
 
-The takeaway on this dataset: raw `binary` loses more than half its recall, but adding a cheap fp32 re-rank over the binary shortlist recovers it **completely at 32× compression** — strictly better than `int8` on both axes here. On *your* data the numbers will differ, which is exactly the point of measuring. (Latency is reported per query but omitted here as it is machine-dependent.)
+**Takeaway.** `int8` is the reliable win — ≈0.97 recall at 4× smaller, almost for free. Raw `binary` drops hard (0.61), losing ~40% of the true neighbours. `binary+rescore` recovers most of it, **but the recall depends on the oversample factor** (0.87 → 0.97 → 0.99 as the shortlist grows from 40 to 1,000 candidates per query), and it only pays off if you **keep the fp32 vectors around to re-rank** — so the 32× is a *RAM* saving (scan packed bits in memory, re-score against retained fp32), not a reduction in total stored bytes. Note what's *absent*: the spurious `1.0000` you get from a tiny corpus is gone here — even oversample 100 tops out at 0.9946, because the shortlist is now a small fraction of the 50k database. On *your* data the numbers will differ — that's the point of measuring. (Latency is reported per query by the script but omitted here, as it is machine-dependent.)
 
 ## How recall is computed
 
