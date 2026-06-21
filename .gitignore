@@ -1,0 +1,16 @@
+# Rust
+/target
+
+# Python
+/.venv
+__pycache__/
+*.py[cod]
+*.pyd
+*.pdb
+.pytest_cache/
+/dist
+*.egg-info/
+
+# Editors / IDE
+/.idea
+/.junie

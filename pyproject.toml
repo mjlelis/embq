@@ -1,0 +1,25 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "embq"
+version = "0.1.0"
+description = "Quantization trade-off profiler for embeddings"
+authors = [{ name = "Author", email = "author@example.com" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pyarrow",
+    "pandas",
+    "tabulate",
+]
+
+[project.scripts]
+embq = "embq.cli:main"
+
+[tool.maturin]
+manifest-path = "crates/embq-py/Cargo.toml"
+python-source = "python"
+module-name = "embq.embq_py"
+features = ["pyo3/extension-module"]
